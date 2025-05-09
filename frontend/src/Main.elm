@@ -1,19 +1,22 @@
 module Main exposing (..)
+
 import Browser
 import Html exposing (Html, button, div, input, li, text, ul)
 import Html.Attributes exposing (placeholder, value)
 import Html.Events exposing (onClick, onInput)
+import Json.Decode as Decode
+import Http
 
-type alias Task = 
-    {
-        id : Int,
-        description : String,
-        completed : Bool
+type alias Task =
+    { id : String
+    , description : String
+    , completed : Bool
     }
-type alias Model = {
-    tasks: List Task
+
+type alias Model =
+    { tasks : List Task
     , newTask : String
-    }      
+    }
 
 initModel : Model
 initModel = 
@@ -21,33 +24,67 @@ initModel =
     , newTask = ""
     }
 
-type Msg
-    = UpdateNewTask String
-    | AddTask
-    | ToggleTask Int
-    | DeleteTask Int
+taskDecoder : Decode.Decoder Task
+taskDecoder =
+    Decode.map3 Task
+        (Decode.field "_id" Decode.string) -- Decode `_id` as a string
+        (Decode.field "description" Decode.string)
+        (Decode.field "completed" Decode.bool)
 
-update : Msg -> Model -> Model
+tasksDecoder : Decode.Decoder (List Task)
+tasksDecoder =
+    Decode.list taskDecoder
+
+fetchTasksRequest : Cmd Msg
+fetchTasksRequest =
+    Http.get
+        { url = "http://localhost:3000/tasks"
+        , expect = Http.expectJson TasksFetched tasksDecoder
+        }
+
+type Msg
+    = FetchTasks
+    | TasksFetched (Result Http.Error (List Task))
+    | UpdateNewTask String
+    | AddTask
+    | ToggleTask String
+    | DeleteTask String
+
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
+        FetchTasks ->
+            (model, fetchTasksRequest)
+        
+        TasksFetched (Ok tasks) ->
+            ( { model | tasks = tasks }, Cmd.none )
+        
+        TasksFetched (Err error) ->
+            let
+                _ = Debug.log "Error fetching tasks" error
+            in
+            (model, Cmd.none)
+
         UpdateNewTask newTask ->
-            { model | newTask = newTask }
+            ( { model | newTask = newTask }, Cmd.none )
 
         AddTask ->
             let
                 newTask =
-                    { id = List.length model.tasks + 1
+                    { id = String.fromInt (List.length model.tasks + 1)
                     , description = model.newTask
                     , completed = False
                     }
             in
-            { model
+            ( { model
                 | tasks = model.tasks ++ [ newTask ]
                 , newTask = ""
-            }
+              }
+            , Cmd.none
+            )
 
         ToggleTask id ->
-            { model
+            ( { model
                 | tasks =
                     List.map
                         (\task ->
@@ -57,12 +94,16 @@ update msg model =
                                 task
                         )
                         model.tasks
-            }
+              }
+            , Cmd.none
+            )
 
         DeleteTask id ->
-            { model
+            ( { model
                 | tasks = List.filter (\task -> task.id /= id) model.tasks
-            }
+              }
+            , Cmd.none
+            )
 
 view : Model -> Html Msg
 view model =
@@ -88,8 +129,9 @@ viewTask task =
 
 main : Program () Model Msg
 main =
-    Browser.sandbox
-        { init = initModel
+    Browser.element
+        { init = \_ -> (initModel, fetchTasksRequest)
         , update = update
         , view = view
+        , subscriptions = \_ -> Sub.none
         }
