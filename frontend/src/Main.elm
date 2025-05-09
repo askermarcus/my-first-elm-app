@@ -63,6 +63,18 @@ toggleTaskRequest task =
         , tracker = Nothing
         }
 
+deleteTaskRequest : String -> Cmd Msg
+deleteTaskRequest id =
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url = "http://localhost:3000/tasks/" ++ id
+        , body = Http.emptyBody
+        , expect = Http.expectString (TaskDeleted id)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
 type Msg
     = FetchTasks
     | TasksFetched (Result Http.Error (List Task))
@@ -72,6 +84,7 @@ type Msg
     | ToggleTask String
     | TaskToggled (Result Http.Error Task)
     | DeleteTask String
+    | TaskDeleted String (Result Http.Error String)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -140,11 +153,21 @@ update msg model =
             (model, Cmd.none)
 
         DeleteTask id ->
+            (model, deleteTaskRequest id)
+
+        TaskDeleted id (Ok _) ->
             ( { model
                 | tasks = List.filter (\task -> task.id /= id) model.tasks
               }
             , Cmd.none
             )
+
+        TaskDeleted id (Err error) ->
+            let
+                _ = Debug.log ("Error deleting task with id: " ++ id) error
+            in
+            (model, Cmd.none)
+
 
 view : Model -> Html Msg
 view model =

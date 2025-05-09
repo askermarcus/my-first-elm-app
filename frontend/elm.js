@@ -6194,6 +6194,29 @@ var $author$project$Main$addTaskRequest = function (description) {
 			url: 'http://localhost:3000/tasks'
 		});
 };
+var $author$project$Main$TaskDeleted = F2(
+	function (a, b) {
+		return {$: 'TaskDeleted', a: a, b: b};
+	});
+var $elm$http$Http$expectString = function (toMsg) {
+	return A2(
+		$elm$http$Http$expectStringResponse,
+		toMsg,
+		$elm$http$Http$resolve($elm$core$Result$Ok));
+};
+var $author$project$Main$deleteTaskRequest = function (id) {
+	return $elm$http$Http$request(
+		{
+			body: $elm$http$Http$emptyBody,
+			expect: $elm$http$Http$expectString(
+				$author$project$Main$TaskDeleted(id)),
+			headers: _List_Nil,
+			method: 'DELETE',
+			timeout: $elm$core$Maybe$Nothing,
+			tracker: $elm$core$Maybe$Nothing,
+			url: 'http://localhost:3000/tasks/' + id
+		});
+};
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -6327,20 +6350,32 @@ var $author$project$Main$update = F2(
 					var _v4 = A2($elm$core$Debug$log, 'Error toggling task', error);
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
-			default:
+			case 'DeleteTask':
 				var id = msg.a;
 				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							tasks: A2(
-								$elm$core$List$filter,
-								function (task) {
-									return !_Utils_eq(task.id, id);
-								},
-								model.tasks)
-						}),
-					$elm$core$Platform$Cmd$none);
+					model,
+					$author$project$Main$deleteTaskRequest(id));
+			default:
+				if (msg.b.$ === 'Ok') {
+					var id = msg.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								tasks: A2(
+									$elm$core$List$filter,
+									function (task) {
+										return !_Utils_eq(task.id, id);
+									},
+									model.tasks)
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var id = msg.a;
+					var error = msg.b.a;
+					var _v5 = A2($elm$core$Debug$log, 'Error deleting task with id: ' + id, error);
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $author$project$Main$AddTask = {$: 'AddTask'};
