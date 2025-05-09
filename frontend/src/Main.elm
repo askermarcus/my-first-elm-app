@@ -51,6 +51,18 @@ addTaskRequest description =
         , expect = Http.expectJson TaskAdded taskDecoder
         }
 
+toggleTaskRequest : Task -> Cmd Msg
+toggleTaskRequest task =
+    Http.request
+        { method = "PATCH"
+        , headers = []
+        , url = "http://localhost:3000/tasks/" ++ task.id
+        , body = Http.jsonBody (Encode.object [ ( "completed", Encode.bool (not task.completed) ) ])
+        , expect = Http.expectJson TaskToggled taskDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
 type Msg
     = FetchTasks
     | TasksFetched (Result Http.Error (List Task))
@@ -58,6 +70,7 @@ type Msg
     | AddTask
     | TaskAdded (Result Http.Error Task)
     | ToggleTask String
+    | TaskToggled (Result Http.Error Task)
     | DeleteTask String
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -83,28 +96,6 @@ update msg model =
             , addTaskRequest model.newTask
             )
 
-        ToggleTask id ->
-            ( { model
-                | tasks =
-                    List.map
-                        (\task ->
-                            if task.id == id then
-                                { task | completed = not task.completed }
-                            else
-                                task
-                        )
-                        model.tasks
-              }
-            , Cmd.none
-            )
-
-        DeleteTask id ->
-            ( { model
-                | tasks = List.filter (\task -> task.id /= id) model.tasks
-              }
-            , Cmd.none
-            )
-            
         TaskAdded (Ok task) ->
             ( { model | tasks = model.tasks ++ [ task ] }, Cmd.none )
 
@@ -113,6 +104,47 @@ update msg model =
                 _ = Debug.log "Error adding task" error
             in
             (model, Cmd.none)
+
+        ToggleTask id ->
+            let
+                taskToToggle =
+                    List.filter (\task -> task.id == id) model.tasks
+                        |> List.head
+            in
+            case taskToToggle of
+                Just task ->
+                    (model, toggleTaskRequest task)
+
+                Nothing ->
+                    (model, Cmd.none)
+
+        TaskToggled (Ok updatedTask) ->
+            ( { model
+                | tasks =
+                    List.map
+                        (\task ->
+                            if task.id == updatedTask.id then
+                                updatedTask
+                            else
+                                task
+                        )
+                        model.tasks
+              }
+            , Cmd.none
+            )
+
+        TaskToggled (Err error) ->
+            let
+                _ = Debug.log "Error toggling task" error
+            in
+            (model, Cmd.none)
+
+        DeleteTask id ->
+            ( { model
+                | tasks = List.filter (\task -> task.id /= id) model.tasks
+              }
+            , Cmd.none
+            )
 
 view : Model -> Html Msg
 view model =
@@ -132,7 +164,7 @@ viewTask : Task -> Html Msg
 viewTask task = 
     li []
         [ text task.description
-        , button [ onClick (ToggleTask task.id) ] [ text (if task.completed then "Undo" else "Complete")]
+        , button [ onClick (ToggleTask task.id) ] [ text (if task.completed then "Undo" else "Complete") ]
         , button [ onClick (DeleteTask task.id) ] [ text "Delete" ]
         ]
 

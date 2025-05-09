@@ -6205,11 +6205,42 @@ var $elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
 var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Main$TaskToggled = function (a) {
+	return {$: 'TaskToggled', a: a};
+};
 var $elm$core$Basics$not = _Basics_not;
+var $author$project$Main$toggleTaskRequest = function (task) {
+	return $elm$http$Http$request(
+		{
+			body: $elm$http$Http$jsonBody(
+				$elm$json$Json$Encode$object(
+					_List_fromArray(
+						[
+							_Utils_Tuple2(
+							'completed',
+							$elm$json$Json$Encode$bool(!task.completed))
+						]))),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$TaskToggled, $author$project$Main$taskDecoder),
+			headers: _List_Nil,
+			method: 'PATCH',
+			timeout: $elm$core$Maybe$Nothing,
+			tracker: $elm$core$Maybe$Nothing,
+			url: 'http://localhost:3000/tasks/' + task.id
+		});
+};
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -6241,37 +6272,7 @@ var $author$project$Main$update = F2(
 						model,
 						{newTask: ''}),
 					$author$project$Main$addTaskRequest(model.newTask));
-			case 'ToggleTask':
-				var id = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							tasks: A2(
-								$elm$core$List$map,
-								function (task) {
-									return _Utils_eq(task.id, id) ? _Utils_update(
-										task,
-										{completed: !task.completed}) : task;
-								},
-								model.tasks)
-						}),
-					$elm$core$Platform$Cmd$none);
-			case 'DeleteTask':
-				var id = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							tasks: A2(
-								$elm$core$List$filter,
-								function (task) {
-									return !_Utils_eq(task.id, id);
-								},
-								model.tasks)
-						}),
-					$elm$core$Platform$Cmd$none);
-			default:
+			case 'TaskAdded':
 				if (msg.a.$ === 'Ok') {
 					var task = msg.a.a;
 					return _Utils_Tuple2(
@@ -6289,6 +6290,57 @@ var $author$project$Main$update = F2(
 					var _v2 = A2($elm$core$Debug$log, 'Error adding task', error);
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
+			case 'ToggleTask':
+				var id = msg.a;
+				var taskToToggle = $elm$core$List$head(
+					A2(
+						$elm$core$List$filter,
+						function (task) {
+							return _Utils_eq(task.id, id);
+						},
+						model.tasks));
+				if (taskToToggle.$ === 'Just') {
+					var task = taskToToggle.a;
+					return _Utils_Tuple2(
+						model,
+						$author$project$Main$toggleTaskRequest(task));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'TaskToggled':
+				if (msg.a.$ === 'Ok') {
+					var updatedTask = msg.a.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								tasks: A2(
+									$elm$core$List$map,
+									function (task) {
+										return _Utils_eq(task.id, updatedTask.id) ? updatedTask : task;
+									},
+									model.tasks)
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = msg.a.a;
+					var _v4 = A2($elm$core$Debug$log, 'Error toggling task', error);
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			default:
+				var id = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							tasks: A2(
+								$elm$core$List$filter,
+								function (task) {
+									return !_Utils_eq(task.id, id);
+								},
+								model.tasks)
+						}),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$Main$AddTask = {$: 'AddTask'};
