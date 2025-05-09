@@ -5,6 +5,7 @@ import Html exposing (Html, button, div, input, li, text, ul)
 import Html.Attributes exposing (placeholder, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
+import Json.Encode as Encode
 import Http
 
 type alias Task =
@@ -42,11 +43,20 @@ fetchTasksRequest =
         , expect = Http.expectJson TasksFetched tasksDecoder
         }
 
+addTaskRequest : String -> Cmd Msg
+addTaskRequest description =
+    Http.post
+        { url = "http://localhost:3000/tasks"
+        , body = Http.jsonBody (Encode.object [ ( "description", Encode.string description ), ( "completed", Encode.bool False ) ])
+        , expect = Http.expectJson TaskAdded taskDecoder
+        }
+
 type Msg
     = FetchTasks
     | TasksFetched (Result Http.Error (List Task))
     | UpdateNewTask String
     | AddTask
+    | TaskAdded (Result Http.Error Task)
     | ToggleTask String
     | DeleteTask String
 
@@ -69,18 +79,8 @@ update msg model =
             ( { model | newTask = newTask }, Cmd.none )
 
         AddTask ->
-            let
-                newTask =
-                    { id = String.fromInt (List.length model.tasks + 1)
-                    , description = model.newTask
-                    , completed = False
-                    }
-            in
-            ( { model
-                | tasks = model.tasks ++ [ newTask ]
-                , newTask = ""
-              }
-            , Cmd.none
+            ( { model | newTask = "" }
+            , addTaskRequest model.newTask
             )
 
         ToggleTask id ->
@@ -104,6 +104,15 @@ update msg model =
               }
             , Cmd.none
             )
+            
+        TaskAdded (Ok task) ->
+            ( { model | tasks = model.tasks ++ [ task ] }, Cmd.none )
+
+        TaskAdded (Err error) ->
+            let
+                _ = Debug.log "Error adding task" error
+            in
+            (model, Cmd.none)
 
 view : Model -> Html Msg
 view model =

@@ -6148,6 +6148,52 @@ var $author$project$Main$fetchTasksRequest = $elm$http$Http$get(
 var $author$project$Main$initModel = {newTask: '', tasks: _List_Nil};
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+var $author$project$Main$TaskAdded = function (a) {
+	return {$: 'TaskAdded', a: a};
+};
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$http$Http$jsonBody = function (value) {
+	return A2(
+		_Http_pair,
+		'application/json',
+		A2($elm$json$Json$Encode$encode, 0, value));
+};
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$http$Http$post = function (r) {
+	return $elm$http$Http$request(
+		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$addTaskRequest = function (description) {
+	return $elm$http$Http$post(
+		{
+			body: $elm$http$Http$jsonBody(
+				$elm$json$Json$Encode$object(
+					_List_fromArray(
+						[
+							_Utils_Tuple2(
+							'description',
+							$elm$json$Json$Encode$string(description)),
+							_Utils_Tuple2(
+							'completed',
+							$elm$json$Json$Encode$bool(false))
+						]))),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$TaskAdded, $author$project$Main$taskDecoder),
+			url: 'http://localhost:3000/tasks'
+		});
+};
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -6190,23 +6236,11 @@ var $author$project$Main$update = F2(
 						{newTask: newTask}),
 					$elm$core$Platform$Cmd$none);
 			case 'AddTask':
-				var newTask = {
-					completed: false,
-					description: model.newTask,
-					id: $elm$core$String$fromInt(
-						$elm$core$List$length(model.tasks) + 1)
-				};
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{
-							newTask: '',
-							tasks: _Utils_ap(
-								model.tasks,
-								_List_fromArray(
-									[newTask]))
-						}),
-					$elm$core$Platform$Cmd$none);
+						{newTask: ''}),
+					$author$project$Main$addTaskRequest(model.newTask));
 			case 'ToggleTask':
 				var id = msg.a;
 				return _Utils_Tuple2(
@@ -6223,7 +6257,7 @@ var $author$project$Main$update = F2(
 								model.tasks)
 						}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'DeleteTask':
 				var id = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -6237,6 +6271,24 @@ var $author$project$Main$update = F2(
 								model.tasks)
 						}),
 					$elm$core$Platform$Cmd$none);
+			default:
+				if (msg.a.$ === 'Ok') {
+					var task = msg.a.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								tasks: _Utils_ap(
+									model.tasks,
+									_List_fromArray(
+										[task]))
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = msg.a.a;
+					var _v2 = A2($elm$core$Debug$log, 'Error adding task', error);
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $author$project$Main$AddTask = {$: 'AddTask'};
@@ -6294,7 +6346,6 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			$elm$html$Html$Events$alwaysStop,
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
-var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
