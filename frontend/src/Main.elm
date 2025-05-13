@@ -1,5 +1,7 @@
 module Main exposing (..)
 
+-- IMPORTS
+
 import Browser
 import Html exposing (Html, button, div, input, li, text, ul)
 import Html.Attributes exposing (placeholder, value)
@@ -7,6 +9,8 @@ import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Http
+
+-- TYPES
 
 type alias Task =
     { id : String
@@ -19,22 +23,39 @@ type alias Model =
     , newTask : String
     }
 
+type Msg
+    = FetchTasks
+    | TasksFetched (Result Http.Error (List Task))
+    | UpdateNewTask String
+    | AddTask
+    | TaskAdded (Result Http.Error Task)
+    | ToggleTask String
+    | TaskToggled (Result Http.Error Task)
+    | DeleteTask String
+    | TaskDeleted String (Result Http.Error String)
+
+-- INITIAL STATE
+
 initModel : Model
 initModel = 
     { tasks = []
     , newTask = ""
     }
 
+-- DECODERS
+
 taskDecoder : Decode.Decoder Task
 taskDecoder =
     Decode.map3 Task
-        (Decode.field "_id" Decode.string) -- Decode `_id` as a string
+        (Decode.field "_id" Decode.string)
         (Decode.field "description" Decode.string)
         (Decode.field "completed" Decode.bool)
 
 tasksDecoder : Decode.Decoder (List Task)
 tasksDecoder =
     Decode.list taskDecoder
+
+-- HTTP REQUESTS
 
 fetchTasksRequest : Cmd Msg
 fetchTasksRequest =
@@ -75,16 +96,7 @@ deleteTaskRequest id =
         , tracker = Nothing
         }
 
-type Msg
-    = FetchTasks
-    | TasksFetched (Result Http.Error (List Task))
-    | UpdateNewTask String
-    | AddTask
-    | TaskAdded (Result Http.Error Task)
-    | ToggleTask String
-    | TaskToggled (Result Http.Error Task)
-    | DeleteTask String
-    | TaskDeleted String (Result Http.Error String)
+-- UPDATE FUNCTION
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -168,6 +180,7 @@ update msg model =
             in
             (model, Cmd.none)
 
+-- VIEW FUNCTIONS
 
 view : Model -> Html Msg
 view model =
@@ -190,6 +203,8 @@ viewTask task =
         , button [ onClick (ToggleTask task.id) ] [ text (if task.completed then "Undo" else "Complete") ]
         , button [ onClick (DeleteTask task.id) ] [ text "Delete" ]
         ]
+
+-- MAIN
 
 main : Program () Model Msg
 main =
