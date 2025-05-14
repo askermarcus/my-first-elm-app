@@ -15,11 +15,10 @@ app.use(bodyParser.json()); // Parse JSON request bodies
 app.use("/tasks", tasksRouter); // Register the tasks routes
 
 // Connect to MongoDB
+const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/todo";
+
 mongoose
-  .connect("mongodb://localhost:27017/todo", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(mongoUri)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Could not connect to MongoDB:", err));
 
