@@ -9,7 +9,6 @@ import Http
 import Json.Encode as Encode
 import Model exposing (..)
 
--- HTTP REQUESTS
 
 fetchTasksRequest : Cmd Msg
 fetchTasksRequest =
@@ -49,8 +48,6 @@ deleteTaskRequest id =
         , timeout = Nothing
         , tracker = Nothing
         }
-
--- UPDATE FUNCTION
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -132,4 +129,7 @@ update msg model =
             let
                 _ = Debug.log ("Error deleting task with id: " ++ id) error
             in
+            (model, Cmd.none)
+
+        NoOp ->
             (model, Cmd.none)

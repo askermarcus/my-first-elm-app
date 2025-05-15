@@ -27,6 +27,7 @@ type Msg
     | TaskToggled (Result Http.Error Task)
     | DeleteTask String
     | TaskDeleted String (Result Http.Error String)
+    | NoOp
 
 -- INITIAL STATE
 
