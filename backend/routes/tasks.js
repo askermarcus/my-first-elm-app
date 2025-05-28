@@ -17,6 +17,7 @@ router.post("/", async (req, res) => {
   const task = new Task({
     description: req.body.description, // Get description from request body
     completed: req.body.completed || false, // Default to false if not provided
+    timestamp: new Date(),
   });
 
   try {

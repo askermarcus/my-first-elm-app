@@ -1,21 +1,29 @@
 -- filepath: /Users/marcus.asker/my-first-elm-app/frontend/src/Model.elm
+
+
 module Model exposing (..)
 
-import Json.Decode as Decode
 import Http
+import Json.Decode as Decode
+
+
 
 -- TYPES
+
 
 type alias Task =
     { id : String
     , description : String
     , completed : Bool
+    , timestamp : String
     }
+
 
 type alias Model =
     { tasks : List Task
     , newTask : String
     }
+
 
 type Msg
     = FetchTasks
@@ -29,22 +37,30 @@ type Msg
     | TaskDeleted String (Result Http.Error String)
     | NoOp
 
+
+
 -- INITIAL STATE
 
+
 initModel : Model
-initModel = 
+initModel =
     { tasks = []
     , newTask = ""
     }
 
+
+
 -- DECODERS
+
 
 taskDecoder : Decode.Decoder Task
 taskDecoder =
-    Decode.map3 Task
+    Decode.map4 Task
         (Decode.field "_id" Decode.string)
         (Decode.field "description" Decode.string)
         (Decode.field "completed" Decode.bool)
+        (Decode.field "timestamp" Decode.string)
+
 
 tasksDecoder : Decode.Decoder (List Task)
 tasksDecoder =
