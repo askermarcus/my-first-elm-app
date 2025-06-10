@@ -9,6 +9,8 @@ module Update exposing
 import Http
 import Json.Encode as Encode
 import Model exposing (..)
+import Process
+import Task
 
 
 fetchTasksRequest : String -> Cmd Msg
@@ -66,9 +68,20 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UpdateSearchTerm term ->
-            ( { model | searchTerm = term }
-            , fetchTasksRequest term
+            let
+                nextDebounce =
+                    model.searchDebounce + 1
+            in
+            ( { model | searchTerm = term, searchDebounce = nextDebounce }
+            , Process.sleep 500 |> Task.perform (\_ -> DebouncedSearch nextDebounce term)
             )
+
+        DebouncedSearch debounce term ->
+            if debounce == model.searchDebounce then
+                ( model, fetchTasksRequest term )
+
+            else
+                ( model, Cmd.none )
 
         FetchTasks ->
             ( model, fetchTasksRequest model.searchTerm )
@@ -154,8 +167,8 @@ update msg model =
             in
             ( model, Cmd.none )
 
+        SearchTasks ->
+            ( model, fetchTasksRequest model.searchTerm )
+
         NoOp ->
             ( model, Cmd.none )
-
-        SearchTasks ->
-            Debug.todo "branch 'SearchTasks' not implemented"

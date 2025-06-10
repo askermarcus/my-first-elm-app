@@ -23,6 +23,7 @@ type alias Model =
     { tasks : List Task
     , newTask : String
     , searchTerm : String
+    , searchDebounce : Int
     }
 
 
@@ -37,6 +38,7 @@ type Msg
     | DeleteTask String
     | TaskDeleted String (Result Http.Error String)
     | UpdateSearchTerm String
+    | DebouncedSearch Int String
     | SearchTasks
     | NoOp
 
@@ -50,6 +52,7 @@ initModel =
     { tasks = []
     , newTask = ""
     , searchTerm = ""
+    , searchDebounce = 0
     }
 
 

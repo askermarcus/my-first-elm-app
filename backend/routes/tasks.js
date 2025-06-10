@@ -1,14 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const Task = require("../models/Task"); // Import the Task model
+const Task = require("../models/Task");
 
-// Get all tasks
 router.get("/", async (req, res) => {
   try {
-    const tasks = await Task.find(); // Fetch all tasks from the database
-    res.json(tasks); // Send tasks as JSON
+    const search = req.query.search;
+    let query = {};
+    if (search) {
+      query.description = { $regex: search, $options: "i" };
+    }
+    const tasks = await Task.find(query);
+    res.json(tasks);
   } catch (err) {
-    res.status(500).json({ message: err.message }); // Handle errors
+    res.status(500).json({ message: err.message });
   }
 });
 

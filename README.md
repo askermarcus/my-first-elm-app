@@ -49,6 +49,14 @@ Open your browser or use a tool like Postman to test the backend API:
 docker logs <backend-container-id>
 ```
 
+### Making changes in the backend
+
+After making changes in the backend and want to update your containers simply run
+
+```
+docker-compose up --build
+```
+
 ## Frontend Setup
 
 The frontend is an Elm application served locally using vite. Follow these teps to set it up:
