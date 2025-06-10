@@ -1,21 +1,31 @@
-module Update exposing (
-    update,
-    fetchTasksRequest,
-    addTaskRequest,
-    toggleTaskRequest,
-    deleteTaskRequest)
+module Update exposing
+    ( addTaskRequest
+    , deleteTaskRequest
+    , fetchTasksRequest
+    , toggleTaskRequest
+    , update
+    )
 
 import Http
 import Json.Encode as Encode
 import Model exposing (..)
 
 
-fetchTasksRequest : Cmd Msg
-fetchTasksRequest =
+fetchTasksRequest : String -> Cmd Msg
+fetchTasksRequest searchTerm =
+    let
+        url =
+            if String.isEmpty searchTerm then
+                "http://localhost:3000/tasks"
+
+            else
+                "http://localhost:3000/tasks?search=" ++ searchTerm
+    in
     Http.get
-        { url = "http://localhost:3000/tasks"
+        { url = url
         , expect = Http.expectJson TasksFetched tasksDecoder
         }
+
 
 addTaskRequest : String -> Cmd Msg
 addTaskRequest description =
@@ -24,6 +34,7 @@ addTaskRequest description =
         , body = Http.jsonBody (Encode.object [ ( "description", Encode.string description ), ( "completed", Encode.bool False ) ])
         , expect = Http.expectJson TaskAdded taskDecoder
         }
+
 
 toggleTaskRequest : Task -> Cmd Msg
 toggleTaskRequest task =
@@ -37,6 +48,7 @@ toggleTaskRequest task =
         , tracker = Nothing
         }
 
+
 deleteTaskRequest : String -> Cmd Msg
 deleteTaskRequest id =
     Http.request
@@ -49,20 +61,27 @@ deleteTaskRequest id =
         , tracker = Nothing
         }
 
-update : Msg -> Model -> (Model, Cmd Msg)
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        UpdateSearchTerm term ->
+            ( { model | searchTerm = term }
+            , fetchTasksRequest term
+            )
+
         FetchTasks ->
-            (model, fetchTasksRequest)
-        
+            ( model, fetchTasksRequest model.searchTerm )
+
         TasksFetched (Ok tasks) ->
             ( { model | tasks = tasks }, Cmd.none )
-        
+
         TasksFetched (Err error) ->
             let
-                _ = Debug.log "Error fetching tasks" error
+                _ =
+                    Debug.log "Error fetching tasks" error
             in
-            (model, Cmd.none)
+            ( model, Cmd.none )
 
         UpdateNewTask newTask ->
             ( { model | newTask = newTask }, Cmd.none )
@@ -77,9 +96,10 @@ update msg model =
 
         TaskAdded (Err error) ->
             let
-                _ = Debug.log "Error adding task" error
+                _ =
+                    Debug.log "Error adding task" error
             in
-            (model, Cmd.none)
+            ( model, Cmd.none )
 
         ToggleTask id ->
             let
@@ -89,10 +109,10 @@ update msg model =
             in
             case taskToToggle of
                 Just task ->
-                    (model, toggleTaskRequest task)
+                    ( model, toggleTaskRequest task )
 
                 Nothing ->
-                    (model, Cmd.none)
+                    ( model, Cmd.none )
 
         TaskToggled (Ok updatedTask) ->
             ( { model
@@ -101,6 +121,7 @@ update msg model =
                         (\task ->
                             if task.id == updatedTask.id then
                                 updatedTask
+
                             else
                                 task
                         )
@@ -111,12 +132,13 @@ update msg model =
 
         TaskToggled (Err error) ->
             let
-                _ = Debug.log "Error toggling task" error
+                _ =
+                    Debug.log "Error toggling task" error
             in
-            (model, Cmd.none)
+            ( model, Cmd.none )
 
         DeleteTask id ->
-            (model, deleteTaskRequest id)
+            ( model, deleteTaskRequest id )
 
         TaskDeleted id (Ok _) ->
             ( { model
@@ -127,9 +149,13 @@ update msg model =
 
         TaskDeleted id (Err error) ->
             let
-                _ = Debug.log ("Error deleting task with id: " ++ id) error
+                _ =
+                    Debug.log ("Error deleting task with id: " ++ id) error
             in
-            (model, Cmd.none)
+            ( model, Cmd.none )
 
         NoOp ->
-            (model, Cmd.none)
+            ( model, Cmd.none )
+
+        SearchTasks ->
+            Debug.todo "branch 'SearchTasks' not implemented"

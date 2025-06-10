@@ -22,6 +22,7 @@ type alias Task =
 type alias Model =
     { tasks : List Task
     , newTask : String
+    , searchTerm : String
     }
 
 
@@ -35,6 +36,8 @@ type Msg
     | TaskToggled (Result Http.Error Task)
     | DeleteTask String
     | TaskDeleted String (Result Http.Error String)
+    | UpdateSearchTerm String
+    | SearchTasks
     | NoOp
 
 
@@ -46,6 +49,7 @@ initModel : Model
 initModel =
     { tasks = []
     , newTask = ""
+    , searchTerm = ""
     }
 
 

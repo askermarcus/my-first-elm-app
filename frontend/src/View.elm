@@ -33,6 +33,13 @@ view model =
                 , class "border border-gray-300 rounded-lg p-2 w-full mb-4"
                 ]
                 []
+            , input
+                [ placeholder "Search todos..."
+                , value model.searchTerm
+                , onInput UpdateSearchTerm
+                , class "mb-4 px-3 py-2 border rounded w-full"
+                ]
+                []
             , button
                 [ onClick AddTask
                 , class "bg-blue-500 text-white px-4 py-2 rounded-lg w-full mb-4 hover:bg-blue-600"
