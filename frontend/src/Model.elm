@@ -3,6 +3,7 @@
 
 module Model exposing (..)
 
+import Dict exposing (Dict)
 import Http
 import Json.Decode as Decode
 
@@ -16,6 +17,7 @@ type alias Task =
     , description : String
     , completed : Bool
     , timestamp : String
+    , labels : List String
     }
 
 
@@ -24,6 +26,15 @@ type alias Model =
     , newTask : String
     , searchTerm : String
     , searchDebounce : Int
+    , labels : List Label
+    , newLabel : String
+    , labelDropdown : Dict String String
+    }
+
+
+type alias Label =
+    { id : String
+    , name : String
     }
 
 
@@ -40,6 +51,12 @@ type Msg
     | UpdateSearchTerm String
     | DebouncedSearch Int String
     | SearchTasks
+    | LabelsFetched (Result Http.Error (List Label))
+    | UpdateNewLabel String
+    | AddLabel
+    | LabelAdded (Result Http.Error Label)
+    | SelectLabelDropdown String String
+    | AttachLabelToTask String
     | NoOp
 
 
@@ -53,6 +70,9 @@ initModel =
     , newTask = ""
     , searchTerm = ""
     , searchDebounce = 0
+    , labels = []
+    , newLabel = ""
+    , labelDropdown = Dict.empty
     }
 
 
@@ -62,13 +82,26 @@ initModel =
 
 taskDecoder : Decode.Decoder Task
 taskDecoder =
-    Decode.map4 Task
+    Decode.map5 Task
         (Decode.field "_id" Decode.string)
         (Decode.field "description" Decode.string)
         (Decode.field "completed" Decode.bool)
         (Decode.field "timestamp" Decode.string)
+        (Decode.field "labels" (Decode.list Decode.string))
 
 
 tasksDecoder : Decode.Decoder (List Task)
 tasksDecoder =
     Decode.list taskDecoder
+
+
+labelDecoder : Decode.Decoder Label
+labelDecoder =
+    Decode.map2 Label
+        (Decode.field "_id" Decode.string)
+        (Decode.field "name" Decode.string)
+
+
+labelsDecoder : Decode.Decoder (List Label)
+labelsDecoder =
+    Decode.list labelDecoder

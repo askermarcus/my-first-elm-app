@@ -1,11 +1,13 @@
 module Update exposing
     ( addTaskRequest
     , deleteTaskRequest
+    , fetchLabelsRequest
     , fetchTasksRequest
     , toggleTaskRequest
     , update
     )
 
+import Dict exposing (Dict)
 import Http
 import Json.Encode as Encode
 import Model exposing (..)
@@ -64,6 +66,36 @@ deleteTaskRequest id =
         }
 
 
+fetchLabelsRequest : Cmd Msg
+fetchLabelsRequest =
+    Http.get
+        { url = "http://localhost:3000/labels"
+        , expect = Http.expectJson LabelsFetched labelsDecoder
+        }
+
+
+addLabelRequest : String -> Cmd Msg
+addLabelRequest name =
+    Http.post
+        { url = "http://localhost:3000/labels"
+        , body = Http.jsonBody (Encode.object [ ( "name", Encode.string name ) ])
+        , expect = Http.expectJson LabelAdded labelDecoder
+        }
+
+
+patchTaskLabelsRequest : String -> List String -> Cmd Msg
+patchTaskLabelsRequest taskId labelIds =
+    Http.request
+        { method = "PATCH"
+        , headers = []
+        , url = "http://localhost:3000/tasks/" ++ taskId
+        , body = Http.jsonBody (Encode.object [ ( "labels", Encode.list Encode.string labelIds ) ])
+        , expect = Http.expectJson TaskToggled taskDecoder -- or your update msg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -98,6 +130,38 @@ update msg model =
 
         UpdateNewTask newTask ->
             ( { model | newTask = newTask }, Cmd.none )
+
+        LabelsFetched (Ok labels) ->
+            ( { model | labels = labels }, Cmd.none )
+
+        LabelsFetched (Err error) ->
+            let
+                _ =
+                    Debug.log "Error fetching label" error
+            in
+            ( model, Cmd.none )
+
+        AddLabel ->
+            ( { model | newLabel = "" }
+            , addLabelRequest model.newLabel
+            )
+
+        LabelAdded (Ok label) ->
+            let
+                _ =
+                    Debug.log "Error adding label" label
+            in
+            ( model, fetchLabelsRequest )
+
+        LabelAdded (Err error) ->
+            let
+                _ =
+                    Debug.log "Error adding label" error
+            in
+            ( model, Cmd.none )
+
+        UpdateNewLabel newLabel ->
+            ( { model | newLabel = newLabel }, Cmd.none )
 
         AddTask ->
             ( { model | newTask = "" }
@@ -169,6 +233,39 @@ update msg model =
 
         SearchTasks ->
             ( model, fetchTasksRequest model.searchTerm )
+
+        SelectLabelDropdown taskId labelId ->
+            ( { model | labelDropdown = Dict.insert taskId labelId model.labelDropdown }
+            , Cmd.none
+            )
+
+        AttachLabelToTask taskId ->
+            case Dict.get taskId model.labelDropdown of
+                Just labelId ->
+                    let
+                        -- Find the task
+                        maybeTask =
+                            List.filter (\t -> t.id == taskId) model.tasks |> List.head
+
+                        -- Add label if not already present
+                        updatedLabels =
+                            case maybeTask of
+                                Just task ->
+                                    if List.member labelId task.labels then
+                                        task.labels
+
+                                    else
+                                        labelId :: task.labels
+
+                                Nothing ->
+                                    []
+                    in
+                    ( model
+                    , patchTaskLabelsRequest taskId updatedLabels
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
