@@ -56,7 +56,7 @@ type Msg
     | AddLabel
     | LabelAdded (Result Http.Error Label)
     | SelectLabelDropdown String String
-    | AttachLabelToTask String
+    | ToggleLabelOnTask String String
     | NoOp
 
 

@@ -3,7 +3,7 @@
 
 module View exposing (view)
 
-import Dict
+import Dict exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onClick, onInput)
@@ -21,27 +21,33 @@ formatTimeStamp timestamp =
     String.slice 0 10 timestamp
 
 
-
--- filepath: /Users/marcus.asker/my-first-elm-app/frontend/src/View.elm
-
-
 view : Model -> Html Msg
 view model =
-    div [ class "flex justify-center items-center min-h-screen bg-gray-100" ]
-        [ div [ class "bg-white p-6 rounded-lg shadow-md w-full max-w-md" ]
-            [ h1 [ class "text-2xl font-bold text-center mb-4" ] [ text "My Todos" ]
+    div [ class "flex min-h-screen bg-gray-100" ]
+        [ div [ class "flex-1 p-8" ]
+            [ h2 [ class "text-xl font-bold mb-4" ] [ text "Todos" ]
+            , ul [ class "space-y-4" ]
+                (List.map (viewTask model) model.tasks)
+            ]
+        , div [ class "w-96 bg-white p-8 shadow-lg flex flex-col gap-6 sticky top-0 z-10 self-start" ]
+            [ h2 [ class "text-lg font-bold" ] [ text "Add Todo" ]
             , input
-                [ placeholder "Add a new task"
+                [ placeholder "New todo..."
                 , value model.newTask
                 , onInput UpdateNewTask
                 , onKeyDown (keyToMsg AddTask)
-                , class "border border-gray-300 rounded-lg p-2 w-full mb-4"
+                , class "border border-gray-300 rounded-lg p-2 w-full"
                 ]
                 []
-            , div
-                [ class "mb-4 flex" ]
+            , button
+                [ onClick AddTask
+                , class "bg-blue-500 text-white px-4 py-2 rounded-lg w-full hover:bg-blue-600"
+                ]
+                [ text "Add Task" ]
+            , h2 [ class "text-lg font-bold mt-8" ] [ text "Add Label" ]
+            , div [ class "flex gap-2" ]
                 [ input
-                    [ placeholder "Create new label"
+                    [ placeholder "New label..."
                     , value model.newLabel
                     , onInput UpdateNewLabel
                     , onKeyDown (keyToMsg AddLabel)
@@ -50,77 +56,82 @@ view model =
                     []
                 , button
                     [ onClick AddLabel
-                    , class "bg-green-500 text-white px-3 py-2 rounded-lg ml-2 hover:bg-green-600"
+                    , class "bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-600"
                     ]
                     [ text "Add Label" ]
                 ]
-            , input
-                [ placeholder "Search todos..."
-                , value model.searchTerm
-                , onInput UpdateSearchTerm
-                , class "mb-4 px-3 py-2 border rounded w-full"
-                ]
-                []
-            , button
-                [ onClick AddTask
-                , class "bg-blue-500 text-white px-4 py-2 rounded-lg w-full mb-4 hover:bg-blue-600"
-                ]
-                [ text "Add Task" ]
-            , ul [ class "space-y-2 list-none" ]
-                (List.map (viewTask model) model.tasks)
+            , h2 [ class "text-lg font-bold mt-8" ] [ text "All Labels" ]
+            , div [ class "flex flex-wrap gap-2" ]
+                (List.map (\label -> viewLabelChip (\_ -> False) label "") model.labels)
             ]
         ]
 
 
 viewTask : Model -> Task -> Html Msg
 viewTask model task =
-    li [ class "flex flex-col p-3 border border-gray-300 rounded-lg space-y-2" ]
+    li [ class "bg-white p-4 rounded-lg shadow flex flex-col gap-2" ]
         [ div [ class "flex justify-between items-center" ]
-            [ div [ class "text-sm font-medium text-gray-800 max-w-[50%]" ]
-                [ text task.description ]
-            , div [ class "space-x-2" ]
-                [-- ...your buttons here... ]
-                ]
-            , div [ class "flex items-center space-x-2" ]
-                [ select
-                    [ onInput (SelectLabelDropdown task.id)
-                    , class "border rounded px-2 py-1"
+            [ div [ class "font-medium text-gray-800" ] [ text task.description ]
+            , div [ class "flex gap-2" ]
+                [ button
+                    [ onClick (ToggleTask task.id)
+                    , class
+                        ("px-2 py-1 rounded "
+                            ++ (if task.completed then
+                                    "bg-green-500 text-white"
+
+                                else
+                                    "bg-gray-300"
+                               )
+                        )
                     ]
-                    (option [ value "" ] [ text "Add label..." ]
-                        :: List.map
-                            (\label ->
-                                option
-                                    [ value label.id
-                                    , selected (Maybe.withDefault "" (Dict.get task.id model.labelDropdown) == label.id)
-                                    ]
-                                    [ text label.name ]
-                            )
-                            model.labels
-                    )
+                    [ text
+                        (if task.completed then
+                            "Undo"
+
+                         else
+                            "Complete"
+                        )
+                    ]
                 , button
-                    [ onClick (AttachLabelToTask task.id)
-                    , class "bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                    [ onClick (DeleteTask task.id)
+                    , class "bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
                     ]
-                    [ text "Attach" ]
+                    [ text "Delete" ]
                 ]
-            , div [ class "text-xs text-gray-500" ]
-                [ text
-                    ("Labels: "
-                        ++ String.join ", "
-                            (List.filterMap
-                                (\labelId ->
-                                    List.filter (\l -> l.id == labelId) model.labels
-                                        |> List.head
-                                        |> Maybe.map .name
-                                )
-                                task.labels
-                            )
-                    )
-                ]
-            , div [ class "text-xs text-gray-500 text-right" ]
-                [ text ("Created at: " ++ formatTimeStamp task.timestamp) ]
             ]
+        , div [ class "flex flex-wrap gap-2" ]
+            (List.map
+                (\label ->
+                    viewLabelChip (\labelId -> List.member labelId task.labels) label task.id
+                )
+                model.labels
+            )
+        , div [ class "text-xs text-gray-500 text-right" ]
+            [ text ("Created at: " ++ formatTimeStamp task.timestamp) ]
         ]
+
+
+viewLabelChip : (String -> Bool) -> Label -> (String -> Html Msg)
+viewLabelChip isAssigned label =
+    \taskId ->
+        let
+            assigned =
+                isAssigned label.id
+        in
+        button
+            [ onClick (ToggleLabelOnTask taskId label.id)
+            , class
+                ("px-2 py-1 rounded-full border "
+                    ++ (if assigned then
+                            "bg-blue-500 text-white border-blue-500"
+
+                        else
+                            "bg-gray-100 text-gray-700 border-gray-300"
+                       )
+                )
+            ]
+            [ text label.name ]
 
 
 keyToMsg : Msg -> Int -> Msg

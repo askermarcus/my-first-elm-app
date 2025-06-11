@@ -7,7 +7,7 @@ module Update exposing
     , update
     )
 
-import Dict exposing (Dict)
+import Dict exposing (..)
 import Http
 import Json.Encode as Encode
 import Model exposing (..)
@@ -239,33 +239,24 @@ update msg model =
             , Cmd.none
             )
 
-        AttachLabelToTask taskId ->
-            case Dict.get taskId model.labelDropdown of
-                Just labelId ->
-                    let
-                        -- Find the task
-                        maybeTask =
-                            List.filter (\t -> t.id == taskId) model.tasks |> List.head
+        ToggleLabelOnTask taskId labelId ->
+            let
+                maybeTask =
+                    List.filter (\t -> t.id == taskId) model.tasks |> List.head
 
-                        -- Add label if not already present
-                        updatedLabels =
-                            case maybeTask of
-                                Just task ->
-                                    if List.member labelId task.labels then
-                                        task.labels
+                updatedLabels =
+                    case maybeTask of
+                        Just task ->
+                            if List.member labelId task.labels then
+                                List.filter ((/=) labelId) task.labels
 
-                                    else
-                                        labelId :: task.labels
+                            else
+                                labelId :: task.labels
 
-                                Nothing ->
-                                    []
-                    in
-                    ( model
-                    , patchTaskLabelsRequest taskId updatedLabels
-                    )
-
-                Nothing ->
-                    ( model, Cmd.none )
+                        Nothing ->
+                            []
+            in
+            ( model, patchTaskLabelsRequest taskId updatedLabels )
 
         NoOp ->
             ( model, Cmd.none )
