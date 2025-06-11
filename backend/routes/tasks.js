@@ -22,6 +22,7 @@ router.post("/", async (req, res) => {
     description: req.body.description, // Get description from request body
     completed: req.body.completed || false, // Default to false if not provided
     timestamp: new Date(),
+    labels: req.body.labels || [],
   });
 
   try {
@@ -44,6 +45,9 @@ router.patch("/:id", async (req, res) => {
     }
     if (req.body.completed != null) {
       task.completed = req.body.completed;
+    }
+    if (req.body.labels != null) {
+      task.labels = req.body.labels;
     }
 
     const updatedTask = await task.save(); // Save the updated task

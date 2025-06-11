@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const tasksRouter = require("./routes/tasks"); // Import the tasks routes
+const labelsRouter = require("./routes/labels");
 
 const app = express();
 const PORT = 3000;
@@ -13,6 +14,7 @@ app.use(bodyParser.json()); // Parse JSON request bodies
 
 // Routes
 app.use("/tasks", tasksRouter); // Register the tasks routes
+app.use("/labels", labelsRouter);
 
 // Connect to MongoDB
 const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/todo";
