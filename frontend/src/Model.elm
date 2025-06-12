@@ -29,6 +29,7 @@ type alias Model =
     , labels : List Label
     , newLabel : String
     , labelDropdown : Dict String String
+    , labelFilters : List String
     }
 
 
@@ -57,6 +58,7 @@ type Msg
     | LabelAdded (Result Http.Error Label)
     | SelectLabelDropdown String String
     | ToggleLabelOnTask String String
+    | ToggleLabelFilter String
     | NoOp
 
 
@@ -73,6 +75,7 @@ initModel =
     , labels = []
     , newLabel = ""
     , labelDropdown = Dict.empty
+    , labelFilters = []
     }
 
 

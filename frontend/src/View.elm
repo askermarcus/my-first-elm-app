@@ -26,8 +26,18 @@ view model =
     div [ class "flex min-h-screen bg-gray-100" ]
         [ div [ class "flex-1 p-8" ]
             [ h2 [ class "text-xl font-bold mb-4" ] [ text "Todos" ]
-            , ul [ class "space-y-4" ]
-                (List.map (viewTask model) model.tasks)
+            , let
+                filteredTasks =
+                    if List.isEmpty model.labelFilters then
+                        model.tasks
+
+                    else
+                        List.filter
+                            (\task -> List.all (\labelId -> List.member labelId task.labels) model.labelFilters)
+                            model.tasks
+              in
+              ul [ class "space-y-4" ]
+                (List.map (viewTask model) filteredTasks)
             ]
         , div [ class "w-96 bg-white p-8 shadow-lg flex flex-col gap-6 sticky top-0 z-10 self-start" ]
             [ h2 [ class "text-lg font-bold" ] [ text "Add Todo" ]
@@ -62,7 +72,28 @@ view model =
                 ]
             , h2 [ class "text-lg font-bold mt-8" ] [ text "All Labels" ]
             , div [ class "flex flex-wrap gap-2" ]
-                (List.map (\label -> viewLabelChip (\_ -> False) label "") model.labels)
+                (List.map
+                    (\label ->
+                        let
+                            selected =
+                                List.member label.id model.labelFilters
+                        in
+                        button
+                            [ onClick (ToggleLabelFilter label.id)
+                            , class
+                                ("px-2 py-1 rounded-full border transition "
+                                    ++ (if selected then
+                                            "bg-blue-500 text-white border-blue-500"
+
+                                        else
+                                            "bg-gray-100 text-gray-700 border-gray-300"
+                                       )
+                                )
+                            ]
+                            [ text label.name ]
+                    )
+                    model.labels
+                )
             ]
         ]
 

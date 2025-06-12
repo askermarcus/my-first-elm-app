@@ -4,11 +4,16 @@ const Task = require("../models/Task");
 
 router.get("/", async (req, res) => {
   try {
-    const search = req.query.search;
     let query = {};
+    const { search, labels } = req.query;
+
     if (search) {
       query.description = { $regex: search, $options: "i" };
     }
+    if (labels) {
+      query.labels = { $all: labels.split(",") };
+    }
+
     const tasks = await Task.find(query);
     res.json(tasks);
   } catch (err) {
@@ -16,24 +21,22 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Create a new task
 router.post("/", async (req, res) => {
   const task = new Task({
-    description: req.body.description, // Get description from request body
-    completed: req.body.completed || false, // Default to false if not provided
+    description: req.body.description,
+    completed: req.body.completed || false,
     timestamp: new Date(),
     labels: req.body.labels || [],
   });
 
   try {
-    const newTask = await task.save(); // Save the task to the database
-    res.status(201).json(newTask); // Respond with the created task
+    const newTask = await task.save();
+    res.status(201).json(newTask);
   } catch (err) {
-    res.status(400).json({ message: err.message }); // Handle validation errors
+    res.status(400).json({ message: err.message });
   }
 });
 
-// Update a task
 router.patch("/:id", async (req, res) => {
   try {
     const task = await Task.findById(req.params.id); // Find task by ID

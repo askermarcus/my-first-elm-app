@@ -9,7 +9,7 @@ import View exposing (view)
 main : Program () Model Msg
 main =
     Browser.element
-        { init = \_ -> ( initModel, Cmd.batch [ fetchTasksRequest "", fetchLabelsRequest ] )
+        { init = \_ -> ( initModel, Cmd.batch [ fetchTasksRequest initModel.searchTerm initModel.labelFilters, fetchLabelsRequest ] )
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none

@@ -15,15 +15,33 @@ import Process
 import Task
 
 
-fetchTasksRequest : String -> Cmd Msg
-fetchTasksRequest searchTerm =
+fetchTasksRequest : String -> List String -> Cmd Msg
+fetchTasksRequest searchTerm labelFilters =
     let
-        url =
+        baseUrl =
             if String.isEmpty searchTerm then
                 "http://localhost:3000/tasks"
 
             else
                 "http://localhost:3000/tasks?search=" ++ searchTerm
+
+        url =
+            if List.isEmpty labelFilters then
+                baseUrl
+
+            else
+                let
+                    labelParam =
+                        String.join "," labelFilters
+
+                    sep =
+                        if String.contains "?" baseUrl then
+                            "&"
+
+                        else
+                            "?"
+                in
+                baseUrl ++ sep ++ "labels=" ++ labelParam
     in
     Http.get
         { url = url
@@ -110,13 +128,13 @@ update msg model =
 
         DebouncedSearch debounce term ->
             if debounce == model.searchDebounce then
-                ( model, fetchTasksRequest term )
+                ( model, fetchTasksRequest term model.labelFilters )
 
             else
                 ( model, Cmd.none )
 
         FetchTasks ->
-            ( model, fetchTasksRequest model.searchTerm )
+            ( model, fetchTasksRequest model.searchTerm model.labelFilters )
 
         TasksFetched (Ok tasks) ->
             ( { model | tasks = tasks }, Cmd.none )
@@ -232,7 +250,7 @@ update msg model =
             ( model, Cmd.none )
 
         SearchTasks ->
-            ( model, fetchTasksRequest model.searchTerm )
+            ( model, fetchTasksRequest model.searchTerm model.labelFilters )
 
         SelectLabelDropdown taskId labelId ->
             ( { model | labelDropdown = Dict.insert taskId labelId model.labelDropdown }
@@ -257,6 +275,19 @@ update msg model =
                             []
             in
             ( model, patchTaskLabelsRequest taskId updatedLabels )
+
+        ToggleLabelFilter labelId ->
+            let
+                newFilters =
+                    if List.member labelId model.labelFilters then
+                        List.filter ((/=) labelId) model.labelFilters
+
+                    else
+                        labelId :: model.labelFilters
+            in
+            ( { model | labelFilters = newFilters }
+            , fetchTasksRequest model.searchTerm newFilters
+            )
 
         NoOp ->
             ( model, Cmd.none )
